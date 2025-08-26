@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -94,15 +93,153 @@ def login():
             return redirect(url_for("dashboard"))
         else:
             flash("Credenciais inválidas", "danger")
+    
     return render_template_string("""
-        <h2>Login</h2>
-        <form method="post">
-            Usuário: <input name="username"><br>
-            Senha: <input type="password" name="password"><br>
-            <label><input type="checkbox" name="remember"> Lembrar-me</label><br>
-            <button type="submit">Entrar</button>
-        </form>
-        <a href="{{ url_for('register') }}">Não tem conta? Cadastre-se</a>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login - Sistema Veterinário</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f0f2f5;
+                }
+                .container {
+                    max-width: 400px;
+                    margin: 50px auto;
+                    padding: 20px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                }
+                .partners {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                .partner-logos {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+                .partner-logos img {
+                    max-width: 45%;
+                    height: auto;
+                    object-fit: contain;
+                }
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                input[type="text"],
+                input[type="password"] {
+                    width: 100%;
+                    padding: 8px;
+                    margin: 5px 0;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    box-sizing: border-box;
+                }
+                button {
+                    width: 100%;
+                    padding: 10px;
+                    background-color: #0066cc;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+                button:hover {
+                    background-color: #0052a3;
+                }
+                .links {
+                    text-align: center;
+                    margin-top: 15px;
+                }
+                .links a {
+                    color: #0066cc;
+                    text-decoration: none;
+                }
+                .links a:hover {
+                    text-decoration: underline;
+                }
+                .remember-me {
+                    margin: 10px 0;
+                }
+                .flash-messages {
+                    margin-bottom: 20px;
+                }
+                .flash-message {
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                }
+                .flash-message.success {
+                    background-color: #d4edda;
+                    color: #155724;
+                }
+                .flash-message.danger {
+                    background-color: #f8d7da;
+                    color: #721c24;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>Sistema de Gerenciamento Veterinário</h2>
+                </div>
+                
+                <div class="partners">
+                    <h3>Uma parceria</h3>
+                    <div class="partner-logos">
+                        <img src="{{ url_for('static', filename='logo_prefeitura.png') }}" 
+                             alt="Prefeitura de Maricá" 
+                             title="Prefeitura de Maricá">
+                        <img src="{{ url_for('static', filename='logo_ictim.png') }}" 
+                             alt="ICTIM" 
+                             title="Instituto de Ciência, Tecnologia e Inovação de Maricá">
+                    </div>
+                </div>
+
+                <div class="flash-messages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="flash-message {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <form method="post">
+                    <div class="form-group">
+                        <input type="text" name="username" placeholder="Nome de usuário" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" placeholder="Senha" required>
+                    </div>
+                    <div class="remember-me">
+                        <label>
+                            <input type="checkbox" name="remember"> Lembrar-me
+                        </label>
+                    </div>
+                    <button type="submit">Entrar</button>
+                </form>
+
+                <div class="links">
+                    <a href="{{ url_for('register') }}">Não tem conta? Cadastre-se</a>
+                </div>
+            </div>
+        </body>
+        </html>
     """)
 
 @app.route("/logout")
