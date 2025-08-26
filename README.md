@@ -1,28 +1,62 @@
-Aplicativo simples para cadastrar, listar, editar e remover **animais** com interface **Tkinter** e persistência em **JSON**.
+# Sistema de Gerenciamento de Clínica Veterinária
 
-O arquivo `animais.json` será criado automaticamente na mesma pasta (com backup automático se o JSON estiver corrompido).
+Este é um sistema web simples desenvolvido em Flask para gerenciar o cadastro de animais, clínicas e agendamentos de procedimentos. A aplicação utiliza SQLAlchemy para interagir com um banco de dados SQLite.
 
-## Funcionalidades
-- **Cadastrar**: novo animal
-- **Listar**   : em tabela 
-- **Editar**   : selecione uma linha, altere os campos e clique **Salvar edição (selecionado)**
-- **Remover**  : selecione uma linha e clique **Remover (selecionado)**
-- **Recarregar do JSON**: lê novamente o arquivo do disco
-- Validação de idade e campos obrigatórios
-- Tratamento para **JSON vazio/corrompido** (cria backup `.bak`)
+## Funcionalidades Principais
 
-## Estrutura dos dados (JSON)
-Cada animal é um objeto com:json
+O sistema possui três perfis de usuários com diferentes níveis de acesso:
 
-  "id": 1
-  "nome" Rex
-  "especie": Cachorro
-  "idade": 4
-  "contato": 31999990000
-  "procedimento": Vacina V10
+1.  **Administrador:**
+    *   Visão completa de todos os animais e agendamentos.
+    *   Gerenciamento completo de clínicas (criar, editar, remover).
+    *   Pode agendar procedimentos para qualquer clínica.
 
+2.  **Clínica:**
+    *   Vê os animais que já estão agendados para sua clínica.
+    *   Vê uma lista de animais que aguardam atendimento e pode agendá-los para si.
+    *   O agendamento é restrito à sua própria clínica.
 
-## Dicas
-- Dê duplo clique numa linha para carregar os dados nos campos (facilita edição).
-- O ID é gerado automaticamente e nunca é reutilizado.
-- Se você já tiver um animais.json, ele será lido e os registros vão aparecer na tabela.
+3.  **Usuário (Dono do Pet):**
+    *   Pode se cadastrar e fazer login.
+    *   Cadastra seus próprios animais.
+    *   Vê o status de agendamento dos seus animais.
+
+## Tecnologias Utilizadas
+
+*   **Backend:** Python com Flask
+*   **Banco de Dados:** SQLAlchemy com SQLite
+*   **Frontend:** HTML renderizado diretamente no Flask com `render_template_string`
+
+## Como Executar o Projeto
+
+1.  **Pré-requisitos:**
+    *   Python 3
+    *   Flask (`pip install Flask`)
+    *   Flask-SQLAlchemy (`pip install Flask-SQLAlchemy`)
+    *   Werkzeug (`pip install Werkzeug`)
+
+2.  **Execução:**
+    *   Clone o repositório.
+    *   Execute o arquivo `M Cadastro vet2.py`:
+      ```bash
+      python "M Cadastro vet2.py"
+      ```
+    *   Acesse a aplicação no seu navegador em `http://127.0.0.1:5000`.
+
+3.  **Banco de Dados:**
+    *   O arquivo do banco de dados (`pets.db`) será criado automaticamente na pasta `instance`.
+    *   Se você fizer alterações nos modelos (tabelas), apague o arquivo `pets.db` para que ele seja recriado com a nova estrutura na próxima execução.
+
+## Credenciais de Acesso Padrão
+
+Ao iniciar a aplicação pela primeira vez, os seguintes usuários são criados:
+
+*   **Administrador:**
+    *   **Usuário:** `admin`
+    *   **Senha:** `admin`
+
+*   **Clínica (associado à 'Clínica Vet 1'):**
+    *   **Usuário:** `clinic_user`
+    *   **Senha:** `clinic`
+
+Você pode cadastrar novos usuários (donos de pets) através da página de registro.
