@@ -4,7 +4,7 @@ import traceback
 from datetime import datetime
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash, abort, jsonify
 from sqlalchemy.orm import joinedload
-
+from services import generate_token
 # Importar extensões compartilhadas
 from extensions import db, login_manager
 import models
@@ -87,25 +87,41 @@ def dashboard():
     user = db.session.get(User, session["user_id"])
     if not user:
         session.pop('user_id', None)
+        session.pop("role", None)
         return redirect(url_for('login'))
 
     # === VISÃO DO ADMIN ===
     if user.role == 'admin':
         all_animals = Animal.query.options(joinedload(Animal.dono), joinedload(Animal.clinic)).order_by(Animal.id.desc()).all()
         
+        # Dados para os gráficos (sem alterações)
+        procedimentos = [animal.procedimento.lower() for animal in all_animals if animal.procedimento]
+        procedimento_counts = {
+            'castração': procedimentos.count('castração'),
+            'consulta': procedimentos.count('consulta'),
+            'vacinação': procedimentos.count('vacinação'),
+            'outros': len([p for p in procedimentos if p not in ['castração', 'consulta', 'vacinação']])
+        }
+        status_counts = {
+            'Concluído': len([a for a in all_animals if a.status == 'Concluído']),
+            'Aguardando': len([a for a in all_animals if a.status != 'Concluído'])
+        }
+
         return render_template_string('''
-            <h1>Dashboard do Administrador</h1>
+            <h1>Dashboard do Administrador</h1> <img src="{{ url_for('static', filename='logo_prefeitura.png') }}"
             <p>Bem-vindo, {{ user.username }}!</p>
-            <a href="{{ url_for('logout') }}">Logout</a>
-            {% if user.role == 'admin' %}
-                | <a href="{{ url_for('manage_clinics') }}">Gerenciar Clínicas</a>
-            {% endif %}
-            | <a href="{{ url_for('reports') }}">Ver Relatórios</a>
+            <a href="{{ url_for('logout') }}">Logout</a> | <a href="{{ url_for('manage_clinics') }}">Gerenciar Clínicas</a> | <a href="{{ url_for('reports') }}">Ver Relatórios</a>
+            
+            <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                <div style="width: 25%;"><canvas id="procedimentosChart"></canvas></div>
+                <div style="width: 25%;"><canvas id="statusChart"></canvas></div>
+            </div>
             
             <h2 style="margin-top: 20px;">Todos os Animais Cadastrados</h2>
             <table border="1" style="width:100%; border-collapse: collapse;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
+                    <tr>
+                        <tr style="background-color: #f2f2f2;">
                         <th style="padding: 8px; text-align: left;">ID</th>
                         <th style="padding: 8px; text-align: left;">Nome</th>
                         <th style="padding: 8px; text-align: left;">Espécie</th>
@@ -118,7 +134,7 @@ def dashboard():
                 <tbody>
                     {% for animal in animals %}
                     <tr>
-                        <td style="padding: 8px;">{{ animal.id }}</td>
+                       <td style="padding: 8px;">{{ animal.id }}</td>
                         <td style="padding: 8px;">{{ animal.nome }}</td>
                         <td style="padding: 8px;">{{ animal.especie }}</td>
                         <td style="padding: 8px;">{{ animal.status }}</td>
@@ -127,139 +143,171 @@ def dashboard():
                         <td style="padding: 8px;">{{ animal.dono.username if animal.dono else 'N/A' }}</td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="7" style="padding: 8px; text-align: center;">Nenhum animal cadastrado no sistema.</td>
-                    </tr>
+                    <tr><td colspan="6" style="text-align: center;">Nenhum animal cadastrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
-        ''', user=user, animals=all_animals)
 
-    # === VISÃO DO TUTOR ===
-    elif user.role == 'user' or user.role == 'tutor':
-        animals = Animal.query.filter_by(dono_id=user.id).all()
-        return render_template_string('''
-            <h1>Dashboard do Tutor</h1>
-            <p>Bem-vindo, {{ user.username }}!</p>
-            <a href="{{ url_for('logout') }}">Logout</a> |
-            <a href="{{ url_for('register_animal') }}">Cadastrar Animal</a>
-            <h2>Meus Animais</h2>
-            <ul>
-                {% for animal in animals %}
-                    <li>
-                        {{ animal.nome }} ({{ animal.especie }}) - Status: {{ animal.status }}
-                        {% if animal.status == 'Agendado' and animal.data_agendamento %}
-                            - Agendado para: {{ animal.data_agendamento.strftime('%d/%m/%Y às %H:%M') }} na clínica {{ animal.clinic.name }}
-                        {% elif animal.clinic %}
-                            - Clínica atribuída: {{ animal.clinic.name }} (Aguardando agendamento)
-                        {% endif %}
-                        {% if animal.verification_token and not animal.token_validated %}
-                            - <span style="background:#fff3cd;border:1px solid #ffeeba;padding:3px 6px;border-radius:4px;">Token: <strong style="font-size:1.1em">{{ animal.verification_token }}</strong></span>
-                            <br><small style="color:#6c757d;">Apresente este número na clínica no dia do atendimento.</small>
-                        {% elif animal.token_validated %}
-                            - <span style="color:green;">Atendimento concluído.</span>
-                        {% endif %}
-                    </li>
-                {% else %}
-                    <li>Nenhum animal cadastrado.</li>
-                {% endfor %}
-            </ul>
-        ''', user=user, animals=animals)
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                // Script dos gráficos (sem alterações na lógica)
+                const procedimentosCtx = document.getElementById('procedimentosChart').getContext('2d');
+                new Chart(procedimentosCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Castração', 'Consulta', 'Vacinação', 'Outros'],
+                        datasets: [{
+                            label: 'Tipos de Atendimento',
+                            data: [{{ procedimento_counts.castração }}, {{ procedimento_counts.consulta }}, {{ procedimento_counts.vacinação }}, {{ procedimento_counts.outros }}],
+                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                        }]
+                    }
+                });
+
+                const statusCtx = document.getElementById('statusChart').getContext('2d');
+                new Chart(statusCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Concluído', 'Aguardando'],
+                        datasets: [{
+                            label: 'Status dos Atendimentos',
+                            data: [{{ status_counts.Concluído }}, {{ status_counts.Aguardando }}],
+                            backgroundColor: ['#4CAF50', '#FF9800']
+                        }]
+                    }
+                });
+            </script>
+        ''', user=user, animals=all_animals, procedimento_counts=procedimento_counts, status_counts=status_counts)
 
     # === VISÃO DA CLÍNICA ===
     elif user.role == 'clinic':
-        animals_waiting_general = Animal.query.filter_by(clinic_id=None, status='Aguardando').options(joinedload(Animal.dono)).all()
-        animals_for_clinic = Animal.query.filter_by(clinic_id=user.clinic_id).options(joinedload(Animal.dono)).order_by(Animal.status).all()
+        return redirect(url_for('clinic_dashboard'))
 
+    # === VISÃO DO TUTOR ===
+    elif user.role == 'user' or user.role == 'tutor':
+        user_animals = Animal.query.filter_by(dono_id=user.id).order_by(Animal.id.desc()).all()
         return render_template_string('''
-            <h1>Dashboard da Clínica: {{ user.clinic.name }}</h1>
+            <h1>Seu Painel</h1>
             <p>Bem-vindo, {{ user.username }}!</p>
-            <a href="{{ url_for('logout') }}">Logout</a> |
-            <a href="{{ url_for('reports') }}">Ver Relatórios</a>
-            
-            <h2 style="margin-top: 20px;">Animais da sua Clínica</h2>
-            <table border="1" style="width:100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="padding: 8px; text-align: left;">Animal</th>
-                        <th style="padding: 8px; text-align: left;">Tutor</th>
-                        <th style="padding: 8px; text-align: left;">Contato</th>
-                        <th style="padding: 8px; text-align: left;">Procedimento</th>
-                        <th style="padding: 8px; text-align: left;">Status</th>
-                        <th style="padding: 8px; text-align: left;">Token</th>
-                        <th style="padding: 8px; text-align: left;">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for animal in animals_for_clinic %}
+            <a href="{{ url_for('logout') }}">Logout</a> | <a href="{{ url_for('register_animal') }}">Cadastrar Novo Animal</a>
+            <h2>Seus Animais Cadastrados</h2>
+            {% if animals %}
+                <table border="1">
+                    <tr><th>ID</th><th>Nome</th><th>Espécie</th><th>Status</th><th>Token</th><th>Dono</th><th>Clínica</th></tr>
+                    {% for animal in animals %}
                     <tr>
-                        <td style="padding: 8px;">{{ animal.nome }} ({{ animal.especie }})</td>
-                        <td style="padding: 8px;">{{ animal.dono.username if animal.dono else 'N/A' }}</td>
-                        <td style="padding: 8px;">{{ animal.contato }}</td>
-                        <td style="padding: 8px;">{{ animal.procedimento }}</td>
-                        <td style="padding: 8px;">
-                            {{ animal.status }}
-                            {% if animal.data_agendamento %}
-                                <br><small>{{ animal.data_agendamento.strftime('%d/%m/%Y %H:%M') }}</small>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 8px;">{{ animal.verification_token or 'N/A' }}</td>
-                        <td style="padding: 8px;">
-                            {% if animal.status == 'Aguardando Agendamento' %}
-                                <form method="post" action="{{ url_for('schedule', animal_id=animal.id) }}">
-                                    <input type="datetime-local" name="data_agendamento" required>
-                                    <button type="submit">Agendar</button>
-                                </form>
-                            {% elif animal.status == 'Agendado' %}
-                                <form method="post" action="{{ url_for('mark_as_complete', animal_id=animal.id) }}" onsubmit="return confirm('Marcar como concluído?');">
-                                    <button type="submit">Marcar Concluído</button>
-                                </form>
-                            {% else %}
-                                {{ animal.status }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" style="padding: 8px; text-align: center;">Nenhum animal na sua clínica no momento.</td>
+                        <td>{{ animal.id }}</td>
+                        <td>{{ animal.nome }}</td>
+                        <td>{{ animal.especie }}</td>
+                        <td>{{ animal.status }}</td>
+                        <td>{{ animal.verification_token or 'N/A' }}</td>
+                        <td>{{ animal.dono.username if animal.dono else 'N/A' }}</td>
+                        <td>{{ animal.clinic.name if animal.clinic else 'Aguardando atribuição' }}</td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
+                </table>
+            {% else %}
+                <p>Você ainda não cadastrou nenhum animal.</p>
+            {% endif %}
+        ''', user=user, animals=user_animals)
+    
+    return "Tipo de usuário desconhecido."
 
-            <h2 style="margin-top: 30px;">Animais na Fila de Espera Geral</h2>
-            <table border="1" style="width:100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="padding: 8px; text-align: left;">Nome</th>
-                        <th style="padding: 8px; text-align: left;">Espécie</th>
-                        <th style="padding: 8px; text-align: left;">Contato do Tutor</th>
-                        <th style="padding: 8px; text-align: left;">Procedimento</th>
-                        <th style="padding: 8px; text-align: left;">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for animal in animals_waiting_general %}
-                        <tr>
-                            <td style="padding: 8px;">{{ animal.nome }}</td>
-                            <td style="padding: 8px;">{{ animal.especie }}</td>
-                            <td style="padding: 8px;">{{ animal.contato }}</td>
-                            <td style="padding: 8px;">{{ animal.procedimento }}</td>
-                            <td style="padding: 8px;">
-                                <form method="post" action="{{ url_for('claim_animal', animal_id=animal.id) }}">
-                                    <button type="submit">Reivindicar</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="5" style="padding: 8px; text-align: center;">Nenhum animal aguardando na fila geral.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        ''', user=user, animals_for_clinic=animals_for_clinic, animals_waiting_general=animals_waiting_general)
+@app.route("/claim_animal/<int:animal_id>", methods=["POST"])
+def claim_animal(animal_id):
+    if "user_id" not in session or session.get("role") != "clinic":
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("login"))
 
+    user = db.session.get(User, session["user_id"])
+    animal = Animal.query.get_or_404(animal_id)
+
+    if animal.clinic_id:
+        flash("Este animal já foi reivindicado por outra clínica.", "warning")
+    else:
+        animal.clinic_id = user.clinic_id
+        animal.status = "Aguardando agendamento"
+        db.session.commit()
+        flash(f"Você reivindicou o atendimento para {animal.nome}.", "success")
+    
+    return redirect(url_for("clinic_dashboard"))
+
+@app.route("/clinic_dashboard")
+def clinic_dashboard():
+    if "user_id" not in session or session.get("role") != "clinic":
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, session["user_id"])
+    if not user or not user.clinic_id:
+        flash("Usuário da clínica não associado a uma clínica.", "danger")
+        return redirect(url_for("login"))
+
+    # Animais já atribuídos a esta clínica
+    clinic_animals = Animal.query.filter_by(clinic_id=user.clinic_id).order_by(Animal.id.desc()).all()
+    
+    # Animais disponíveis para serem reivindicados
+    available_animals = Animal.query.filter_by(clinic_id=None).order_by(Animal.id.desc()).all()
+
+    return render_template_string('''
+        <h1>Painel da Clínica: {{ clinic_name }}</h1>
+        <p>Bem-vindo, {{ user.username }}!</p>
+        <a href="{{ url_for('logout') }}">Logout</a> | <a href="{{ url_for('reports') }}">Ver Relatórios</a>
+        
+        <h2>Seus Atendimentos</h2>
+        <table border="1" style="width:100%">
+            <thead>
+                <tr><th>ID</th><th>Nome</th><th>Espécie</th><th>Procedimento</th><th>Status</th><th>Token</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for animal in clinic_animals %}
+                <tr>
+                    <td>{{ animal.id }}</td>
+                    <td>{{ animal.nome }}</td>
+                    <td>{{ animal.especie }}</td>
+                    <td>{{ animal.procedimento }}</td>
+                    <td>{{ animal.status }}</td>
+                    <td>{{ animal.verification_token or 'N/A' }}</td>
+                    <td>
+                        {% if animal.status == 'Aguardando agendamento' %}
+                        <a href="{{ url_for('schedule', animal_id=animal.id) }}">Agendar</a>
+                        {% elif animal.status == 'Agendado' %}
+                        <form method="POST" action="{{ url_for('mark_as_complete', animal_id=animal.id) }}" style="display:inline;">
+                            <button type="submit">Marcar como Concluído</button>
+                        </form>
+                        {% endif %}
+                    </td>
+</tr>
+                {% else %}
+                <tr><td colspan="6">Nenhum animal em atendimento.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2 style="margin-top: 20px;">Animais Disponíveis para Atendimento</h2>
+        <table border="1" style="width:100%">
+            <thead>
+                <tr><th>ID</th><th>Nome</th><th>Espécie</th><th>Procedimento</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for animal in available_animals %}
+                <tr>
+                    <td>{{ animal.id }}</td>
+                    <td>{{ animal.nome }}</td>
+                    <td>{{ animal.especie }}</td>
+                    <td>{{ animal.procedimento }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('claim_animal', animal_id=animal.id) }}" style="display:inline;">
+                            <button type="submit">Reivindicar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Nenhum animal disponível no momento.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    ''', user=user, clinic_name=user.clinic.name, clinic_animals=clinic_animals, available_animals=available_animals)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -363,7 +411,7 @@ def login():
                 }
                 button {
                     width: 100%;
-                    padding: 10px;
+padding: 10px;
                     background-color: #0066cc;
                     color: white;
                     border: none;
@@ -461,9 +509,6 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
-@app.route("/claim_animal/<int:animal_id>", methods=["POST"])
-def claim_animal(animal_id):
     if "user_id" not in session or session.get("role") != "clinic":
         abort(403)
 
@@ -484,31 +529,46 @@ def claim_animal(animal_id):
 
 
 
-@app.route("/schedule/<int:animal_id>", methods=["POST"])
+@app.route("/schedule/<int:animal_id>", methods=["GET", "POST"])
 def schedule(animal_id):
     if "user_id" not in session or session.get("role") != "clinic":
-        abort(403)
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("login"))
 
     animal = Animal.query.get_or_404(animal_id)
     user = db.session.get(User, session["user_id"])
 
     if animal.clinic_id != user.clinic_id:
         flash("Este animal não pertence à sua clínica.", "danger")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("clinic_dashboard"))
 
-    data_agendamento_str = request.form.get("data_agendamento")
-    if data_agendamento_str:
-        try:
-            animal.data_agendamento = datetime.fromisoformat(data_agendamento_str)
-            animal.status = "Agendado"
-            db.session.commit()
-            flash(f"Atendimento para {animal.nome} agendado com sucesso!", "success")
-        except ValueError:
-            flash("Formato de data inválido.", "danger")
-    else:
-        flash("Data de agendamento não fornecida.", "warning")
+    if request.method == "POST":
+        data_str = request.form.get("data_agendamento")
+        if data_str:
+            try:
+                animal.data_agendamento = datetime.strptime(data_str, '%Y-%m-%dT%H:%M')
+                animal.status = "Agendado"
+                animal.verification_token = generate_token()  # <-- CORREÇÃO AQUI
+                db.session.commit()
+                flash(f"Atendimento para {animal.nome} agendado! Token: {animal.verification_token}", "success")
+                return redirect(url_for("clinic_dashboard"))
+            except ValueError:
+                flash("Formato de data inválido. Use o formato YYYY-MM-DDTHH:MM.", "danger")
+        else:
+            flash("A data de agendamento é obrigatória.", "danger")
+        
+        return redirect(url_for('schedule', animal_id=animal.id))
 
-    return redirect(url_for("dashboard"))
+    return render_template_string('''
+        <h2>Agendar Atendimento para {{ animal.nome }}</h2>
+        <p><strong>Dono:</strong> {{ animal.dono.username }} | <strong>Contato:</strong> {{ animal.contato }}</p>
+        <form method="POST">
+            <label for="data_agendamento">Data e Hora do Agendamento:</label><br>
+            <input type="datetime-local" id="data_agendamento" name="data_agendamento" required><br><br>
+            <button type="submit">Agendar</button>
+        </form>
+        <a href="{{ url_for('clinic_dashboard') }}">Cancelar</a>
+    ''', animal=animal)
 
 
 @app.route("/mark_as_complete/<int:animal_id>", methods=["POST"])
@@ -901,23 +961,61 @@ def delete_clinic(clinic_id):
 
 @app.route('/register_animal', methods=['GET', 'POST'])
 def register_animal():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user = db.session.get(User, session['user_id'])
-    if user.role not in ['user', 'tutor']:
-        flash("Apenas tutores podem cadastrar animais.", "danger")
-        return redirect(url_for('dashboard'))
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    if request.method == 'POST':
-        name = request.form['name']
-        species = request.form['species']
-        contato = request.form['contato']
-        procedimento = request.form['procedimento']
-        services.create_animal(nome=name, especie=species, contato=contato, procedimento=procedimento, dono_id=user.id, status='Aguardando')
-        flash(f'Animal {name} cadastrado com sucesso!', 'success')
-        return redirect(url_for('dashboard'))
+    if request.method == "POST":
+        nome = request.form["nome"]
+        especie = request.form["especie"]
+        idade = request.form["idade"]
+        contato = request.form["contato"]
+        procedimento = request.form.get("procedimento")
+        if procedimento == 'outros':
+            procedimento = request.form.get('procedimento_outro', '').strip()
 
+        if not all([nome, especie, idade, contato, procedimento]):
+            flash("Por favor, preencha todos os campos.", "danger")
+            return redirect(request.url)
+
+        new_animal = Animal(
+            nome=nome,
+            especie=especie,
+            idade=idade,
+            contato=contato,
+            procedimento=procedimento,
+            dono_id=session["user_id"]
+        )
+        db.session.add(new_animal)
+        db.session.commit()
+        flash("Animal cadastrado com sucesso!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template_string('''
+        <h2>Cadastrar Novo Animal</h2>
+        <form method="post">
+            Nome: <input name="nome" required><br>
+            Espécie: <input name="especie" required><br>
+            Idade: <input name="idade" required><br>
+            Contato: <input name="contato" required><br>
+            
+            <p>Selecione o serviço:</p>
+            <input type="radio" id="castracao" name="procedimento" value="castração" required>
+            <label for="castracao">Castração</label><br>
+            
+            <input type="radio" id="consulta" name="procedimento" value="consulta">
+            <label for="consulta">Consulta</label><br>
+            
+            <input type="radio" id="vacinacao" name="procedimento" value="vacinação">
+            <label for="vacinacao">Vacinação</label><br>
+            
+            <input type="radio" id="outros" name="procedimento" value="outros">
+            <label for="outros">Outros:</label>
+            <input type="text" name="procedimento_outro" placeholder="Especifique"><br><br>
+            
+            <button type="submit">Cadastrar</button>
+        </form>
+        <a href="{{ url_for('dashboard') }}">Voltar ao Painel</a>
+    ''')
     return render_template_string('''
         <h1>Cadastrar Novo Animal</h1>
         <form method="post">
@@ -938,4 +1036,3 @@ def register_animal():
         <br>
         <a href="{{ url_for('dashboard') }}">Voltar ao Dashboard</a>
     ''')
-
