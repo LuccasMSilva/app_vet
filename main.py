@@ -21,7 +21,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, instance_path=os.path.join(basedir, 'instance'))
 
 # Configuração da aplicação
-app.config['SECRET_KEY'] = 'uma-chave-secreta-bem-dificil'
+app.config['SECRET_KEY'] = 'uma-chave-secreta-bem-dificill'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'pets.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
