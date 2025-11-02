@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Animal - App Vet{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Editar Animal</h2>
+    
+    <form method="POST" action="{{ url_for('animals.edit_animal', id=animal.id) }}">
+        <div class="form-group">
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" name="nome" value="{{ animal.nome }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="especie">Espécie:</label>
+            <input type="text" id="especie" name="especie" value="{{ animal.especie }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="raca">Raça:</label>
+            <input type="text" id="raca" name="raca" value="{{ animal.raca }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="idade">Idade:</label>
+            <input type="text" id="idade" name="idade" value="{{ animal.idade }}" required>
+        </div>
+
+        {% if session.get('role') == 'admin' or session.get('role') == 'clinic' %}
+        <div class="form-group">
+            <label for="status">Status:</label>
+            <select id="status" name="status" required>
+                <option value="aguardando" {% if animal.status == 'aguardando' %}selected{% endif %}>Aguardando</option>
+                <option value="em_atendimento" {% if animal.status == 'em_atendimento' %}selected{% endif %}>Em Atendimento</option>
+                <option value="finalizado" {% if animal.status == 'finalizado' %}selected{% endif %}>Finalizado</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="procedimento">Procedimento:</label>
+            <select id="procedimento" name="procedimento">
+                <option value="">Selecione...</option>
+                <option value="consulta" {% if animal.procedimento == 'consulta' %}selected{% endif %}>Consulta</option>
+                <option value="vacina" {% if animal.procedimento == 'vacina' %}selected{% endif %}>Vacina</option>
+                <option value="cirurgia" {% if animal.procedimento == 'cirurgia' %}selected{% endif %}>Cirurgia</option>
+                <option value="castração" {% if animal.procedimento == 'castração' %}selected{% endif %}>Castração</option>
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{{ url_for('animals.list_animals') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #34495e;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+</style>
+{% endblock %}

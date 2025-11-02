@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Clínicas - App Vet{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-actions">
+        <h2>Lista de Clínicas</h2>
+        <a href="{{ url_for('clinics.add_clinic') }}" class="btn btn-primary">Adicionar Clínica</a>
+    </div>
+
+    <div class="clinics-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Endereço</th>
+                    <th>Telefone</th>
+                    <th>Usuário</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for clinic in clinics %}
+                <tr>
+                    <td>{{ clinic.nome }}</td>
+                    <td>{{ clinic.endereco }}</td>
+                    <td>{{ clinic.telefone }}</td>
+                    <td>{{ clinic.user.username if clinic.user else 'N/A' }}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('clinics.edit_clinic', id=clinic.id) }}" class="btn btn-small">Editar</a>
+                        <form method="POST" action="{{ url_for('clinics.delete_clinic', id=clinic.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir esta clínica?')">
+                            <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.container {
+    padding: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.clinics-list table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.clinics-list th,
+.clinics-list td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.clinics-list th {
+    background: #2c3e50;
+    color: white;
+}
+
+.clinics-list tr:hover {
+    background: #f9f9f9;
+}
+
+.btn-primary {
+    background-color: #2c3e50;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background-color: #34495e;
+}
+
+.btn-small {
+    background-color: #3498db;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background-color: #2980b9;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.inline-form {
+    display: inline;
+}
+</style>
+{% endblock %}

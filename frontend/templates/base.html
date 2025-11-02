@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}App Vet{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <h1>App Vet</h1>
+            {% if session.get('user_id') %}
+            <ul>
+                <li><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('animals.list_animals') }}">Animais</a></li>
+                {% if session.get('role') == 'admin' %}
+                <li><a href="{{ url_for('clinics.list_clinics') }}">Clínicas</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('auth.logout') }}">Sair</a></li>
+            </ul>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2025 App Vet. Todos os direitos reservados.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin - App Vet{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Dashboard Administrativo</h2>
+    
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3>Total de Animais</h3>
+            <p class="stat-number">{{ animals|length }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Procedimentos</h3>
+            <div class="stat-chart">
+                <canvas id="procedimentosChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="recent-animals">
+        <h3>Animais Recentes</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Espécie</th>
+                    <th>Dono</th>
+                    <th>Clínica</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for animal in animals[:10] %}
+                <tr>
+                    <td>{{ animal.nome }}</td>
+                    <td>{{ animal.especie }}</td>
+                    <td>{{ animal.dono.username if animal.dono else 'N/A' }}</td>
+                    <td>{{ animal.clinic.nome if animal.clinic else 'N/A' }}</td>
+                    <td>{{ animal.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-container {
+    padding: 1rem;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.recent-animals table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.recent-animals th,
+.recent-animals td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.recent-animals th {
+    background: #2c3e50;
+    color: white;
+}
+
+.recent-animals tr:hover {
+    background: #f9f9f9;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('procedimentosChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys({{ procedimento_counts|tojson }}),
+            datasets: [{
+                data: Object.values({{ procedimento_counts|tojson }}),
+                backgroundColor: [
+                    '#2ecc71',
+                    '#3498db',
+                    '#9b59b6',
+                    '#e74c3c'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

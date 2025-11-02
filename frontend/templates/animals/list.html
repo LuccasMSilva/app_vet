@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Animais - App Vet{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-actions">
+        <h2>Lista de Animais</h2>
+        {% if not session.get('role') == 'clinic' %}
+        <a href="{{ url_for('animals.add_animal') }}" class="btn btn-primary">Adicionar Animal</a>
+        {% endif %}
+    </div>
+
+    <div class="animals-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Espécie</th>
+                    <th>Raça</th>
+                    <th>Idade</th>
+                    {% if session.get('role') == 'admin' %}
+                    <th>Dono</th>
+                    {% endif %}
+                    <th>Clínica</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for animal in animals %}
+                <tr>
+                    <td>{{ animal.nome }}</td>
+                    <td>{{ animal.especie }}</td>
+                    <td>{{ animal.raca }}</td>
+                    <td>{{ animal.idade }}</td>
+                    {% if session.get('role') == 'admin' %}
+                    <td>{{ animal.dono.username if animal.dono else 'N/A' }}</td>
+                    {% endif %}
+                    <td>{{ animal.clinic.nome if animal.clinic else 'N/A' }}</td>
+                    <td>{{ animal.status }}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('animals.edit_animal', id=animal.id) }}" class="btn btn-small">Editar</a>
+                        {% if session.get('role') == 'admin' or animal.dono_id == session.get('user_id') %}
+                        <form method="POST" action="{{ url_for('animals.delete_animal', id=animal.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir este animal?')">
+                            <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.container {
+    padding: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.animals-list table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.animals-list th,
+.animals-list td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.animals-list th {
+    background: #2c3e50;
+    color: white;
+}
+
+.animals-list tr:hover {
+    background: #f9f9f9;
+}
+
+.btn-primary {
+    background-color: #2c3e50;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background-color: #34495e;
+}
+
+.btn-small {
+    background-color: #3498db;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background-color: #2980b9;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.inline-form {
+    display: inline;
+}
+</style>
+{% endblock %}

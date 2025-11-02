@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Clínica - App Vet{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Dashboard da Clínica {{ clinic.nome }}</h2>
+    
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3>Total de Animais em Atendimento</h3>
+            <p class="stat-number">{{ animals|length }}</p>
+        </div>
+    </div>
+
+    <div class="animals-list">
+        <h3>Animais em Atendimento</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Espécie</th>
+                    <th>Dono</th>
+                    <th>Procedimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for animal in animals %}
+                <tr>
+                    <td>{{ animal.nome }}</td>
+                    <td>{{ animal.especie }}</td>
+                    <td>{{ animal.dono.username if animal.dono else 'N/A' }}</td>
+                    <td>{{ animal.procedimento }}</td>
+                    <td>{{ animal.status }}</td>
+                    <td>
+                        <a href="{{ url_for('animals.edit_animal', id=animal.id) }}" class="btn btn-small">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-container {
+    padding: 1rem;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.animals-list table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.animals-list th,
+.animals-list td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.animals-list th {
+    background: #2c3e50;
+    color: white;
+}
+
+.animals-list tr:hover {
+    background: #f9f9f9;
+}
+
+.btn-small {
+    background-color: #3498db;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.btn-small:hover {
+    background-color: #2980b9;
+}
+</style>
+{% endblock %}
