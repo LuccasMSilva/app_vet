@@ -18,9 +18,13 @@ def list_animals():
         ).all()
     elif user.role == 'clinic':
         clinic = Clinic.query.filter_by(user_id=user.id).first()
-        animals = Animal.query.filter_by(clinic_id=clinic.id)\
-            .options(joinedload(Animal.dono))\
-            .all()
+        # Se a clínica não existir, não retornar nada
+        if not clinic:
+            animals = []
+        else:
+            animals = Animal.query.filter_by(clinic_id=clinic.id)\
+                .options(joinedload(Animal.dono), joinedload(Animal.clinic))\
+                .all()
     else:
         animals = Animal.query.filter_by(dono_id=user.id)\
             .options(joinedload(Animal.clinic))\
@@ -32,6 +36,10 @@ def list_animals():
 def add_animal():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
+    # apenas usuários comuns e admins podem adicionar animais (não clínicas)
+    if session.get("role") == "clinic":
+        flash("Clínicas não podem adicionar animais através desta interface.", "error")
+        return redirect(url_for("animals.list_animals"))
     
     if request.method == "POST":
         animal = Animal(
@@ -52,8 +60,23 @@ def add_animal():
 def edit_animal(id):
     animal = Animal.query.get_or_404(id)
     
-    if "user_id" not in session or \
-       (session["role"] != "admin" and animal.dono_id != session["user_id"]):
+    # verificar autorização:
+    # - admins: acesso total
+    # - dono do animal: pode editar
+    # - clínica proprietária (usuário que representa a clínica associada ao animal) também pode editar
+    if "user_id" not in session:
+        flash("Acesso negado", "error")
+        return redirect(url_for("auth.login"))
+
+    allowed = False
+    if session.get("role") == "admin":
+        allowed = True
+    elif animal.dono_id == session.get("user_id"):
+        allowed = True
+    elif session.get("role") == "clinic" and animal.clinic and animal.clinic.user_id == session.get("user_id"):
+        allowed = True
+
+    if not allowed:
         flash("Acesso negado", "error")
         return redirect(url_for("animals.list_animals"))
     
@@ -61,7 +84,22 @@ def edit_animal(id):
         animal.nome = request.form["nome"]
         animal.especie = request.form["especie"]
         animal.raca = request.form["raca"]
-        animal.idade = request.form["idade"]
+        # normalizar idade: tentar converter para inteiro, aceitar vazio como None
+        idade_val = request.form.get("idade")
+        try:
+            animal.idade = int(idade_val) if idade_val not in (None, '') else None
+        except ValueError:
+            animal.idade = None
+            flash("Idade inválida, salvo como vazio.", "warning")
+        
+        # se o usuário for admin ou clinic, permitir atualizar status e procedimento
+        if session.get("role") in ("admin", "clinic"):
+            status = request.form.get("status")
+            procedimento = request.form.get("procedimento")
+            if status:
+                animal.status = status.capitalize() if isinstance(status, str) else status
+            if procedimento is not None:
+                animal.procedimento = procedimento
         
         db.session.commit()
         flash("Animal atualizado com sucesso!")
@@ -73,8 +111,20 @@ def edit_animal(id):
 def delete_animal(id):
     animal = Animal.query.get_or_404(id)
     
-    if "user_id" not in session or \
-       (session["role"] != "admin" and animal.dono_id != session["user_id"]):
+    if "user_id" not in session:
+        flash("Acesso negado", "error")
+        return redirect(url_for("auth.login"))
+
+    allowed = False
+    if session.get("role") == "admin":
+        allowed = True
+    elif animal.dono_id == session.get("user_id"):
+        allowed = True
+    elif session.get("role") == "clinic" and animal.clinic and animal.clinic.user_id == session.get("user_id"):
+        # permitir que a clínica responsável remova um animal (se faz sentido para o fluxo)
+        allowed = True
+
+    if not allowed:
         flash("Acesso negado", "error")
         return redirect(url_for("animals.list_animals"))
     

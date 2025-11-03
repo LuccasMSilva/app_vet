@@ -31,9 +31,9 @@
         <div class="form-group">
             <label for="status">Status:</label>
             <select id="status" name="status" required>
-                <option value="aguardando" {% if animal.status == 'aguardando' %}selected{% endif %}>Aguardando</option>
-                <option value="em_atendimento" {% if animal.status == 'em_atendimento' %}selected{% endif %}>Em Atendimento</option>
-                <option value="finalizado" {% if animal.status == 'finalizado' %}selected{% endif %}>Finalizado</option>
+                <option value="Aguardando" {% if animal.status == 'Aguardando' %}selected{% endif %}>Aguardando</option>
+                <option value="Em Atendimento" {% if animal.status == 'Em Atendimento' %}selected{% endif %}>Em Atendimento</option>
+                <option value="Concluído" {% if animal.status == 'Concluído' %}selected{% endif %}>Concluído</option>
             </select>
         </div>
 
@@ -44,7 +44,7 @@
                 <option value="consulta" {% if animal.procedimento == 'consulta' %}selected{% endif %}>Consulta</option>
                 <option value="vacina" {% if animal.procedimento == 'vacina' %}selected{% endif %}>Vacina</option>
                 <option value="cirurgia" {% if animal.procedimento == 'cirurgia' %}selected{% endif %}>Cirurgia</option>
-                <option value="castração" {% if animal.procedimento == 'castração' %}selected{% endif %}>Castração</option>
+                <option value="castracao" {% if animal.procedimento == 'castracao' or animal.procedimento == 'castração' %}selected{% endif %}>Castração</option>
             </select>
         </div>
         {% endif %}
