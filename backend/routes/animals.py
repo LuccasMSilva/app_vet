@@ -47,6 +47,7 @@ def add_animal():
             especie=request.form["especie"],
             raca=request.form["raca"],
             idade=request.form["idade"],
+            procedimento=request.form["procedimento"],
             dono_id=session["user_id"]
         )
         db.session.add(animal)
@@ -92,14 +93,11 @@ def edit_animal(id):
             animal.idade = None
             flash("Idade inválida, salvo como vazio.", "warning")
         
-        # se o usuário for admin ou clinic, permitir atualizar status e procedimento
+        # se o usuário for admin ou clinic, permitir atualizar apenas o status
         if session.get("role") in ("admin", "clinic"):
             status = request.form.get("status")
-            procedimento = request.form.get("procedimento")
             if status:
                 animal.status = status.capitalize() if isinstance(status, str) else status
-            if procedimento is not None:
-                animal.procedimento = procedimento
         
         db.session.commit()
         flash("Animal atualizado com sucesso!")

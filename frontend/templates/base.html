@@ -13,7 +13,9 @@
             <h1>App Vet</h1>
             {% if session.get('user_id') %}
             <ul>
+                {% if session.get('role') in ['admin', 'clinic'] %}
                 <li><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('animals.list_animals') }}">Animais</a></li>
                 {% if session.get('role') == 'admin' %}
                 <li><a href="{{ url_for('clinics.list_clinics') }}">Clínicas</a></li>

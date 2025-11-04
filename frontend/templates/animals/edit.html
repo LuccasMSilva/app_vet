@@ -39,13 +39,7 @@
 
         <div class="form-group">
             <label for="procedimento">Procedimento:</label>
-            <select id="procedimento" name="procedimento">
-                <option value="">Selecione...</option>
-                <option value="consulta" {% if animal.procedimento == 'consulta' %}selected{% endif %}>Consulta</option>
-                <option value="vacina" {% if animal.procedimento == 'vacina' %}selected{% endif %}>Vacina</option>
-                <option value="cirurgia" {% if animal.procedimento == 'cirurgia' %}selected{% endif %}>Cirurgia</option>
-                <option value="castracao" {% if animal.procedimento == 'castracao' or animal.procedimento == 'castração' %}selected{% endif %}>Castração</option>
-            </select>
+            <input type="text" id="procedimento" value="{{ animal.procedimento }}" readonly disabled>
         </div>
         {% endif %}
 

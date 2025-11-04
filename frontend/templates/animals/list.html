@@ -4,12 +4,14 @@
 
 {% block content %}
 <div class="container">
-    <div class="header-actions">
-        <h2>Lista de Animais</h2>
-        {% if not session.get('role') == 'clinic' %}
-        <a href="{{ url_for('animals.add_animal') }}" class="btn btn-primary">Adicionar Animal</a>
-        {% endif %}
+    <h2 class="page-title">Lista de Animais</h2>
+
+    {% if session.get('role') == 'user' %}
+    <div class="add-animal-section">
+        <p class="add-animal-text">Deseja adicionar um novo pet para atendimento?</p>
+        <a href="{{ url_for('animals.add_animal') }}" class="btn btn-primary">Adicionar Novo Pet</a>
     </div>
+    {% endif %}
 
     <div class="animals-list">
         <table>
@@ -76,11 +78,23 @@
     padding: 1rem;
 }
 
-.header-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.page-title {
+    margin-bottom: 1.5rem;
+}
+
+.add-animal-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
     margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.add-animal-text {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
 }
 
 .animals-list table {
